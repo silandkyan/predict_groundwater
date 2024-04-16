@@ -458,6 +458,52 @@ def plot_predicted_data(df, start_date=None, end_date=None, save=False):
     plt.show()
     
     
+def plot_compare_scenario(past, base, pred):
+    fig, axs = plt.subplots(4, 1, figsize=(9,7), sharex=True)
+    for ax in axs:
+        ax.invert_yaxis()
+    
+    sns.lineplot(data=past, x="date", y="water_depth", 
+                 errorbar='sd', 
+                 color='tab:orange', alpha=0.6, ax=axs[0],
+                 label='Measured')
+    sns.lineplot(data=past, x="date", y="pred_water_depth", 
+                 errorbar='sd', 
+                 color='tab:red', alpha=0.6, ax=axs[0],
+                label='Predicted - original climate')
+    axs[0].set_ylabel('Water depth (m)')
+    
+    sns.lineplot(data=base, x="date", y="pred_water_depth", 
+                 errorbar='sd', 
+                 color='tab:orange', alpha=0.6, ax=axs[1],
+                 label='Measured')
+    sns.lineplot(data=pred, x="date", y="pred_water_depth", 
+                 errorbar='sd', 
+                 color='tab:purple', alpha=0.6, ax=axs[1],
+                label='Predicted - future climate')
+    axs[1].set_ylabel('Water depth (m)')
+    
+    sns.lineplot(data=past, x="date", y="pred_water_depth", 
+                 errorbar='sd', 
+                 color='tab:red', alpha=0.6, ax=axs[2],
+                 label='Predicted - original climate')
+    sns.lineplot(data=pred, x="date", y="pred_water_depth", 
+                 errorbar='sd', 
+                 color='tab:purple', alpha=0.6, ax=axs[2],
+                label='Predicted - future climate')
+    axs[2].set_ylabel('Water depth (m)')
+    
+    sns.lineplot(data=pred, x="date", y="water_depth_anomaly", 
+                 errorbar='sd', 
+                 color='k', alpha=0.6, ax=axs[3],
+                #label='Predicted - future climate'
+                )
+    axs[3].set_ylabel('Water depth anomaly (m)')
+    axs[3].axhline(y=0, color='k', alpha=0.7)
+    
+    plt.tight_layout()
+    
+    
 def create_year_df(year):
     '''year must be type int'''
     # Create a date range for the year with daily frequency
@@ -513,3 +559,54 @@ def create_weather(ref_year_df, start_year, running_year,
     s.loc[s['precip_mean'] < 0, 'precip_mean'] = 0
     
     return s
+
+
+def create_resamples(past, pred, base, gs):
+    pasts, preds, bases = {}, {}, {}
+    intervals = {'weekly': 'W', 'monthly': 'M', 'quarterly': 'Q'}
+    keep_cols = ['station_id',# 'geometry',
+                 'reg_clusters',
+                 'pred_water_depth',
+                 'tmean_mean', 'precip_mean',
+                 'tmean_mean_prev_1y_mean', 'precip_mean_prev_1y_sum']
+
+    for i in intervals:
+        pasts[i] = (past[keep_cols + ['water_depth']]
+                    .groupby(by='station_id').resample(intervals[i]).mean())
+        preds[i] = (pred[keep_cols]
+                    .groupby(by='station_id').resample(intervals[i]).mean())
+        bases[i] = (base[keep_cols]
+                    .groupby(by='station_id').resample(intervals[i]).mean())
+
+        pasts[i] = pasts[i].dropna()
+        preds[i] = preds[i].dropna()
+        bases[i] = bases[i].dropna()
+
+        pasts[i].station_id = pasts[i].station_id.astype(int)
+        preds[i].station_id = preds[i].station_id.astype(int)
+        bases[i].station_id = bases[i].station_id.astype(int)
+
+        pasts[i] = pasts[i].droplevel(0)
+        preds[i] = preds[i].droplevel(0)
+        bases[i] = bases[i].droplevel(0)
+        
+        pasts[i]['date'] = pasts[i].index
+        preds[i]['date'] = preds[i].index
+        bases[i]['date'] = bases[i].index
+
+        pasts[i] = pd.merge(pasts[i], gs[['station_id', 'geometry']],
+                            how='left', on='station_id')
+        preds[i] = pd.merge(preds[i], gs[['station_id', 'geometry']],
+                            how='left', on='station_id')
+        bases[i] = pd.merge(bases[i], gs[['station_id', 'geometry']],
+                            how='left', on='station_id')
+
+        pasts[i] = gpd.GeoDataFrame(pasts[i], geometry=pasts[i]['geometry'], crs='EPSG:4326')
+        preds[i] = gpd.GeoDataFrame(preds[i], geometry=preds[i]['geometry'], crs='EPSG:4326')
+        bases[i] = gpd.GeoDataFrame(bases[i], geometry=bases[i]['geometry'], crs='EPSG:4326')
+
+        preds[i]['base_water_depth'] = bases[i]['pred_water_depth']
+        preds[i]['water_depth_anomaly'] = (preds[i]['pred_water_depth']
+                                           - preds[i]['base_water_depth'])
+
+    return pasts, preds, bases
