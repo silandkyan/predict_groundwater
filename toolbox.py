@@ -572,7 +572,9 @@ def plot_measured_pred_map(df, date, dem, dem_extent, save=False):
                            dem_extent[1], dem_extent[3]),
               cmap='gray', origin='upper', aspect='auto')
     part.plot(column='residuals',
-            cmap='vlag', norm=colors.CenteredNorm(halfrange=3.5),
+            cmap='vlag', norm=colors.CenteredNorm(halfrange=2),
+            #norm=colors.SymLogNorm(linthresh=0.03, linscale=0.5,
+            #                       vmin=-5, vmax=5, base=10),
             legend=True, ax=ax2)
     ax2.set_xlim(extent[0]-0.02, extent[2]+0.02)
     ax2.set_ylim(extent[1]-0.02, extent[3]+0.02)
