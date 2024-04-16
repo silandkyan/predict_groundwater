@@ -3,6 +3,7 @@ import numpy as np
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+from matplotlib.gridspec import GridSpec
 import seaborn as sns
 
 import random
@@ -536,6 +537,103 @@ def plot_anomaly_map(df, date, dem, dem_extent, save=False):
     # Show the plot
     plt.show()
     
+
+def plot_measured_pred_map(df, date, dem, dem_extent, save=False):
+    part = df.loc[df['date'] == date]
+    extent = df.geometry.total_bounds
+    
+    fig = plt.figure(figsize=(10, 12))
+    #fig.suptitle(f'{df["date"].dt.to_period("M")}')
+    fig.suptitle(f"{date.strftime('%Y-%m-%d')}", fontsize=14, fontweight='bold')
+    gs = GridSpec(5, 2, height_ratios=[5, 1, 1, 1, 1])
+    
+    # Create subplots
+    ax1 = fig.add_subplot(gs[0, 0], projection=ccrs.PlateCarree())
+    ax2 = fig.add_subplot(gs[0, 1], projection=ccrs.PlateCarree())
+    ax3 = fig.add_subplot(gs[1, :]) 
+    ax4 = fig.add_subplot(gs[2, :], sharex=ax3) 
+    ax5 = fig.add_subplot(gs[3, :], sharex=ax3) 
+    ax6 = fig.add_subplot(gs[4, :], sharex=ax3) 
+    
+    ### ax1 ###
+    ax1.imshow(dem, extent=(dem_extent[0], dem_extent[2],
+                           dem_extent[1], dem_extent[3]),
+              cmap='gray', origin='upper', aspect='auto')
+    part.plot(column='water_depth',
+            cmap='viridis', #norm=colors.CenteredNorm(halfrange=1.25),
+            vmin=-0.5, vmax=10.5,
+            legend=True, ax=ax1)
+    ax1.set_xlim(extent[0]-0.02, extent[2]+0.02)
+    ax1.set_ylim(extent[1]-0.02, extent[3]+0.02)
+    ax1.set_title('Measured water depth (m)')
+    
+    ### ax2 ###
+    ax2.imshow(dem, extent=(dem_extent[0], dem_extent[2],
+                           dem_extent[1], dem_extent[3]),
+              cmap='gray', origin='upper', aspect='auto')
+    part.plot(column='residuals',
+            cmap='vlag', norm=colors.CenteredNorm(halfrange=3.5),
+            legend=True, ax=ax2)
+    ax2.set_xlim(extent[0]-0.02, extent[2]+0.02)
+    ax2.set_ylim(extent[1]-0.02, extent[3]+0.02)
+    ax2.set_title('Residuals (m)')
+    
+    ### ax3 ###
+    sns.lineplot(data=df, x="date", y="water_depth", 
+                 errorbar='sd', 
+                 color='tab:orange', alpha=0.6, ax=ax3,
+                 label='Measured')
+    sns.lineplot(data=df, x="date", y="pred_water_depth", 
+                 errorbar='sd', 
+                 color='tab:red', alpha=0.6, ax=ax3,
+                label='Predicted')
+    ax3.set_ylabel('Water depth (m)')
+    ax3.invert_yaxis()
+    ax3.axvline(x=date, color='k', alpha=0.2, linewidth=5)
+    
+    ### ax4 ###
+    sns.lineplot(data=df, x="date", y="residuals", 
+                 errorbar='sd', 
+                 color='k', alpha=0.6, ax=ax4,
+                #label='Predicted'
+                )
+    ax4.set_ylabel('Residuals (m)')
+    ax4.invert_yaxis()
+    ax4.axhline(y=0, color='k', alpha=0.4, linewidth=2)
+    ax4.axvline(x=date, color='k', alpha=0.2, linewidth=5)
+    
+    ### ax5 ###
+    ax5.axvline(x=date, color='k', alpha=0.2, linewidth=5)
+    sns.lineplot(data=df, x="date", y="tmean_mean_prev_7d_mean", 
+                 #errorbar='sd', 
+                 color='tab:purple', alpha=0.6, ax=ax5,
+                #label='T (°C)'
+                )
+    ax5.set_ylabel('T (°C) prev. 7d')
+    
+    ### ax6 ###
+    ax6.axvline(x=date, color='k', alpha=0.2, linewidth=5)
+    sns.lineplot(data=df, x="date", y="precip_mean_prev_7d_sum", 
+                 #errorbar='sd', 
+                 color='tab:cyan', alpha=0.6, ax=ax6,
+                #label='T'
+                )
+    ax6.set_xlabel('Date')
+    ax6.set_ylabel('P (mm) prev. 7d')
+    
+    for ax in [ax3, ax4, ax5]:
+        ax.tick_params(bottom=False, labelbottom=False)
+        ax.set_xlabel('')
+    
+    # Show the figure
+    plt.tight_layout()
+    #plt.show()
+    
+    if save == True:
+        plt.savefig(f"./figs/past_plots/{date.strftime('%Y-%m-%d')}.png",
+                    bbox_inches='tight')
+
+
 def create_year_df(year):
     '''year must be type int'''
     # Create a date range for the year with daily frequency
