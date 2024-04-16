@@ -600,10 +600,12 @@ def create_resamples(past, pred, base, gs):
                  'reg_clusters',
                  'pred_water_depth',
                  'tmean_mean', 'precip_mean',
+                 'tmean_mean_prev_7d_mean', 'precip_mean_prev_7d_sum',
+                 'tmean_mean_prev_30d_mean', 'precip_mean_prev_30d_sum',
                  'tmean_mean_prev_1y_mean', 'precip_mean_prev_1y_sum']
 
     for i in intervals:
-        pasts[i] = (past[keep_cols + ['water_depth']]
+        pasts[i] = (past[keep_cols + ['water_depth', 'residuals']]
                     .groupby(by='station_id').resample(intervals[i]).mean())
         preds[i] = (pred[keep_cols]
                     .groupby(by='station_id').resample(intervals[i]).mean())
