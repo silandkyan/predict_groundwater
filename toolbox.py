@@ -2,12 +2,13 @@ import pandas as pd
 import numpy as np
 import geopandas as gpd
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import seaborn as sns
 
 import random
 import rasterio
 #from rasterio.plot import show
-#import cartopy.crs as ccrs # probably needs to be installed with pip...
+import cartopy.crs as ccrs # probably needs to be installed with pip...
 from shapely.geometry import Point
 
 from sklearn.metrics import mean_absolute_error
@@ -502,7 +503,38 @@ def plot_compare_scenario(past, base, pred):
     axs[3].axhline(y=0, color='k', alpha=0.7)
     
     plt.tight_layout()
+   
     
+def plot_anomaly_map(df, date, dem, dem_extent, save=False):
+    cmap = 'vlag'
+    extent = df.geometry.total_bounds
+
+    # Create a figure and axis with a PlateCarree projection
+    fig, ax = plt.subplots(figsize=(8, 6), 
+                           subplot_kw={'projection': ccrs.PlateCarree()} # removes axis labels
+                          )
+    
+    # Plot hillshade DEM
+    ax.imshow(dem, extent=(dem_extent[0], dem_extent[2],
+                           dem_extent[1], dem_extent[3]),
+              cmap='gray', origin='upper', aspect='auto')
+    
+    df.plot(column='water_depth_anomaly',
+            cmap=cmap, norm=colors.CenteredNorm(halfrange=1.25),
+            legend=True, ax=ax)
+    
+    ax.set_xlim(extent[0]-0.02, extent[2]+0.02)
+    ax.set_ylim(extent[1]-0.02, extent[3]+0.02)
+    
+    #ax.legend(loc='lower left', framealpha=0.5)
+    
+    plt.title(f'Water depth anomaly (m) - {date}')
+
+    if save == True:
+        plt.savefig(f'./figs/anomaly_maps/{date}.png', bbox_inches='tight')
+    
+    # Show the plot
+    plt.show()
     
 def create_year_df(year):
     '''year must be type int'''
