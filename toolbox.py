@@ -396,7 +396,7 @@ def plot_station_data(df, start_date=None, end_date=None, save=False):
         plt.savefig('./figs/station_details.png', bbox_inches='tight')
 
     # Show the plot
-    plt.show()
+    #plt.show()
 
 
 def plot_predicted_data(df, start_date=None, end_date=None, save=False):
@@ -457,7 +457,7 @@ def plot_predicted_data(df, start_date=None, end_date=None, save=False):
         plt.savefig('./figs/station_details.png', bbox_inches='tight')
 
     # Show the plot
-    plt.show()
+    #plt.show()
     
     
 def plot_compare_scenario(past, base, pred):
@@ -535,7 +535,7 @@ def plot_anomaly_map(df, date, dem, dem_extent, save=False):
         plt.savefig(f'./figs/anomaly_maps/{date}.png', bbox_inches='tight')
     
     # Show the plot
-    plt.show()
+    #plt.show()
     
 
 def plot_measured_pred_map(df, date, dem, dem_extent, save=False):
