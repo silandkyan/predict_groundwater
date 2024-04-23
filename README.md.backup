@@ -21,7 +21,7 @@ The modeling strategy involves consecutively running the notebooks to perform th
 2. Model generation and export using model_1.
 3. Creation of future weather scenarios using model_weather.
 4. Predict groundwater with the trained model and a weather file using future_model.
-5. Analyse modeling results using analyse_predictions and make_animation.
+5. 
 
 ## Appendix: Manage environment
 For seamless usage of the notebooks of this repo, it is advisable to set up a kernel environment that contains all necessery python packages. The environment file is also included in this repo: geo.yml in the repo home folder. The basics of environment management are described below.
